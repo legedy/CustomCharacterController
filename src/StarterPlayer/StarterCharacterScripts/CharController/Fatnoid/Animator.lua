@@ -1,0 +1,3 @@
+local Animator = {};
+
+return Animator;
