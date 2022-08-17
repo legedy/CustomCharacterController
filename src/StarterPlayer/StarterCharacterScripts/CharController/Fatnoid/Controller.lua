@@ -6,19 +6,22 @@ local ContextActionService = game:GetService('ContextActionService');
 
 local Controller = {};
 
-Controller._forwardValue = 0;
-Controller._backwardValue = 0;
-Controller._leftValue = 0;
-Controller._rightValue = 0;
+Controller._movementValue = {
+	_isJumping = false,
 
-Controller._isJumping = false;
+	forward = 0,
+	backward = 0,
+	left = 0,
+	right = 0
+};
+
 Controller._moveVector = Vector3.zero;
 
 local Keybinds = {
 	[Enum.KeyCode.W] = {
 		Name = 'moveForwardAction',
 		Callback = function(_, inputState, _)
-			Controller._forwardValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
+			Controller._movementValue.forward = (inputState == Enum.UserInputState.Begin) and 1 or 0
 			Controller:UpdateMovement(inputState);
 
 			return Enum.ContextActionResult.Pass
@@ -28,7 +31,7 @@ local Keybinds = {
 	[Enum.KeyCode.S] = {
 		Name = 'moveBackwardAction',
 		Callback = function(_, inputState, _)
-			Controller._backwardValue = (inputState == Enum.UserInputState.Begin) and 1 or 0
+			Controller._movementValue.backward = (inputState == Enum.UserInputState.Begin) and -1 or 0
 			Controller:UpdateMovement(inputState);
 
 			return Enum.ContextActionResult.Pass
@@ -38,7 +41,7 @@ local Keybinds = {
 	[Enum.KeyCode.A] = {
 		Name = 'moveLeftAction',
 		Callback = function(_, inputState, _)
-			Controller._leftValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
+			Controller._movementValue.left = (inputState == Enum.UserInputState.Begin) and -1 or 0
 			Controller:UpdateMovement(inputState);
 
 			return Enum.ContextActionResult.Pass
@@ -48,7 +51,7 @@ local Keybinds = {
 	[Enum.KeyCode.D] = {
 		Name = 'moveRightAction',
 		Callback = function(_, inputState, _)
-			Controller._rightValue = (inputState == Enum.UserInputState.Begin) and 1 or 0
+			Controller._movementValue.right = (inputState == Enum.UserInputState.Begin) and 1 or 0
 			Controller:UpdateMovement(inputState);
 			
 			return Enum.ContextActionResult.Pass
@@ -69,6 +72,7 @@ function Controller:Init(Character, Signals, Prop)
 	self.Init = nil;
 
 	self._Signals = Signals;
+	self._Settings = Prop;
 	self._Character = Character;
 
 	self._RaycastParams = RaycastParams.new();
@@ -83,7 +87,6 @@ function Controller:Init(Character, Signals, Prop)
 	RunService:BindToRenderStep('characterMovement', 200, function(deltaTime)
 		self:Step(deltaTime);
 	end);
-	print('Ended')
 end
 
 function Controller:BindContextActions()
@@ -101,42 +104,51 @@ function Controller:UnbindContextActions()
 end
 
 function Controller:UpdateMovement(inputState: Enum.UserInputState)
-	if inputState == Enum.UserInputState.Cancel then
+	local MovementValues = self._movementValue;
+
+	if (inputState == Enum.UserInputState.Cancel) then
 		self._moveVector = Vector3.zero;
 	else
-		local CamLookVector = Camera.CFrame.LookVector;
-
 		self._moveVector = Vector3.new(
-			self._leftValue + self._rightValue,
+			MovementValues.left + MovementValues.right,
 			0,
-			self._forwardValue + self._backwardValue
+			MovementValues.forward + MovementValues.backward
 		);
 	end
 end
 
 function Controller:UpdateJump(Jumping)
-	self._isJumping = Jumping;
+	self._movementValue._isJumping = Jumping;
 end
 
 function Controller:Step(deltaTime)
+	local Settings = self._Settings;
 	local CamLookVector = Camera.CFrame.LookVector;
+
 	local Character = self._Character;
 	local Root = Character.RootPart;
 
-	local RayResult = workspace:Raycast(Root.Position, -Vector3.yAxis*2, self._RaycastParams);
+	local RayResult = workspace:Raycast(Root.Position, -Vector3.yAxis*3, self._RaycastParams);
 
 	if (RayResult) then
-		if (self._isJumping) then
+		if (self._movementValue._isJumping) then
 			Character:MoveTo(Root.Position + (Vector3.yAxis * 10));
 			self:UpdateJump(false);
 		end
 	else
 		Character:MoveTo(Root.Position - (Vector3.yAxis * 9.807) * deltaTime);
-		--> Root.Position -= (Vector3.yAxis * workspace.Gravity) * deltaTime;
 	end
-	Character:MoveTo(Root.Position + ((math.deg(math.atan2(CamLookVector.X, CamLookVector.Z)) * self._moveVector) * 5) * deltaTime);
-	--print(Vector3.new(CamLookVector.X, 0, CamLookVector.Y))
-	--> Root.Position += (self._moveVector * 16) * deltaTime;
+
+	local Angle = math.atan2(CamLookVector.X, CamLookVector.Z);
+	local Vertical = Vector3.new(math.sin(Angle), 0, math.cos(Angle));
+	local Horizontal = Vertical:Cross(Vector3.yAxis);
+
+	Character:MoveTo(
+		Root.Position + (
+			(Vertical   * self._moveVector.Z) +
+			(Horizontal * self._moveVector.X)
+		) * Settings.WalkSpeed * deltaTime
+	);
 end
 
 return Controller;
