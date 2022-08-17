@@ -83,6 +83,7 @@ function Controller:Init(Character, Signals, Prop)
 	RunService:BindToRenderStep('characterMovement', 200, function(deltaTime)
 		self:Step(deltaTime);
 	end);
+	print('Ended')
 end
 
 function Controller:BindContextActions()
@@ -133,8 +134,8 @@ function Controller:Step(deltaTime)
 		Character:MoveTo(Root.Position - (Vector3.yAxis * 9.807) * deltaTime);
 		--> Root.Position -= (Vector3.yAxis * workspace.Gravity) * deltaTime;
 	end
-	Character:MoveTo(Root.Position + ((Vector3.new(CamLookVector.X, 0, CamLookVector.Y).Unit * self._moveVector) * 16) * deltaTime);
-	print(Vector3.new(CamLookVector.X, 0, CamLookVector.Y))
+	Character:MoveTo(Root.Position + ((math.deg(math.atan2(CamLookVector.X, CamLookVector.Z)) * self._moveVector) * 5) * deltaTime);
+	--print(Vector3.new(CamLookVector.X, 0, CamLookVector.Y))
 	--> Root.Position += (self._moveVector * 16) * deltaTime;
 end
 
