@@ -6,6 +6,13 @@ local ContextActionService = game:GetService('ContextActionService');
 
 local Controller = {};
 
+local function Normalize(vec3: Vector3)
+	if (vec3 ~= Vector3.zero) then
+		return vec3.Unit;
+	end
+	return Vector3.zero;
+end
+
 Controller._movementValue = {
 	_isJumping = false,
 
@@ -144,7 +151,7 @@ function Controller:Step(deltaTime)
 	local Horizontal = Vertical:Cross(Vector3.yAxis);
 
 	Character:MoveTo(
-		Root.Position + (
+		Root.Position + Normalize(
 			(Vertical   * self._moveVector.Z) +
 			(Horizontal * self._moveVector.X)
 		) * Settings.WalkSpeed * deltaTime
