@@ -22,7 +22,7 @@ Controller._movementValue = {
 	right = 0
 };
 
-Controller._moveVector = Vector3.zero;
+Controller._moveVector = Vector2.zero;
 
 local Keybinds = {
 	[Enum.KeyCode.W] = {
@@ -75,10 +75,10 @@ local Keybinds = {
 	}
 };
 
-function Controller:Init(Character, Signals, Prop)
+function Controller:Init(Character, Events, Prop)
 	self.Init = nil;
 
-	self._Signals = Signals;
+	self._Events = Events;
 	self._Settings = Prop;
 	self._Character = Character;
 
@@ -112,15 +112,19 @@ end
 
 function Controller:UpdateMovement(inputState: Enum.UserInputState)
 	local MovementValues = self._movementValue;
+	local PreviousMoving = (self._moveVector ~= Vector2.zero);
 
 	if (inputState == Enum.UserInputState.Cancel) then
-		self._moveVector = Vector3.zero;
+		self._moveVector = Vector2.zero;
 	else
-		self._moveVector = Vector3.new(
+		self._moveVector = Vector2.new(
 			MovementValues.left + MovementValues.right,
-			0,
 			MovementValues.forward + MovementValues.backward
 		);
+	end
+
+	if (PreviousMoving ~= (self._moveVector ~= Vector2.zero)) then
+		self._Events.Walking:Fire(self._moveVector ~= Vector2.zero);
 	end
 end
 
@@ -152,7 +156,7 @@ function Controller:Step(deltaTime)
 
 	Character:MoveTo(
 		Root.Position + Normalize(
-			(Vertical   * self._moveVector.Z) +
+			(Vertical   * self._moveVector.Y) +
 			(Horizontal * self._moveVector.X)
 		) * Settings.WalkSpeed * deltaTime
 	);
