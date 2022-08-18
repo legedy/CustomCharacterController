@@ -4,7 +4,7 @@ local RunService = game:GetService('RunService');
 local UserInputService = game:GetService('UserInputService');
 local ContextActionService = game:GetService('ContextActionService');
 
-local Controller = {};
+local Controller = {}; -- awjdoajhwd
 
 local function Normalize(vec3: Vector3)
 	if (vec3 ~= Vector3.zero) then
