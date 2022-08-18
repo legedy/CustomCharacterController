@@ -23,6 +23,7 @@ Controller._movementValue = {
 };
 
 Controller._moveVector = Vector2.zero;
+Controller._velocity = Vector3.zero;
 
 local Keybinds = {
 	[Enum.KeyCode.W] = {
@@ -142,12 +143,14 @@ function Controller:Step(deltaTime)
 	local RayResult = workspace:Raycast(Root.Position, -Vector3.yAxis*3, self._RaycastParams);
 
 	if (RayResult) then
+		self._velocity = Vector3.zero;
+
 		if (self._movementValue._isJumping) then
-			Character:MoveTo(Root.Position + (Vector3.yAxis * 10));
+			self._velocity += Vector3.yAxis * Settings.JumpSpeed * deltaTime;
 			self:UpdateJump(false);
 		end
 	else
-		Character:MoveTo(Root.Position - (Vector3.yAxis * 9.807) * deltaTime);
+		self._velocity -= Vector3.yAxis * (Vector3.yAxis * 0.9807 * deltaTime);
 	end
 
 	local Angle = math.atan2(CamLookVector.X, CamLookVector.Z);
@@ -155,7 +158,7 @@ function Controller:Step(deltaTime)
 	local Horizontal = Vertical:Cross(Vector3.yAxis);
 
 	Character:MoveTo(
-		Root.Position + Normalize(
+		Root.Position + self._velocity + Normalize(
 			(Vertical   * self._moveVector.Y) +
 			(Horizontal * self._moveVector.X)
 		) * Settings.WalkSpeed * deltaTime
