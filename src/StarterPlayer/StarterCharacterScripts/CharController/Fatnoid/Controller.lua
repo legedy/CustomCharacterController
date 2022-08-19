@@ -3,6 +3,9 @@ local Camera = workspace.CurrentCamera;
 local RunService = game:GetService('RunService');
 local UserInputService = game:GetService('UserInputService');
 local ContextActionService = game:GetService('ContextActionService');
+local ReplicatedStorage = game:GetService('ReplicatedStorage');
+
+local VisualDebug = require(ReplicatedStorage.VisualDebug);
 
 local Controller = {};
 
@@ -79,14 +82,24 @@ local Keybinds = {
 function Controller:Init(Character, Events, Prop)
 	self.Init = nil;
 
+	local RaycastParam = RaycastParams.new();
+	RaycastParam.IgnoreWater = true;
+	RaycastParam.FilterDescendantsInstances = {Character};
+	RaycastParam.FilterType = Enum.RaycastFilterType.Blacklist;
+
 	self._Events = Events;
 	self._Settings = Prop;
 	self._Character = Character;
 
-	self._RaycastParams = RaycastParams.new();
-	self._RaycastParams.IgnoreWater = true;
-	self._RaycastParams.FilterDescendantsInstances = {Character};
-	self._RaycastParams.FilterType = Enum.RaycastFilterType.Blacklist;
+	self._RaycastParams = RaycastParam;
+	self._Debug = {
+		GroundRaycast = VisualDebug.Line.new{
+			Adornee = Character.RootPart,
+			Color = Color3.fromRGB(255, 0, 0),
+			LookVector = -Vector3.yAxis,
+			Length = 3,
+		}
+	};
 
 	Character.RootPart.Anchored = true;
 	Character.RootPart.Position = Vector3.yAxis * 3;
@@ -140,7 +153,12 @@ function Controller:Step(deltaTime)
 	local Character = self._Character;
 	local Root = Character.RootPart;
 
-	local RayResult = workspace:Raycast(Root.Position, -Vector3.yAxis*3, self._RaycastParams);
+	local RayResult = workspace:Raycast(
+		Root.Position,
+		-Vector3.yAxis * (3 - self._velocity.Y),
+		self._RaycastParams
+	);
+	self._Debug.GroundRaycast:UpdateLength(3 - self._velocity.Y);
 
 	if (RayResult) then
 		self._velocity = Vector3.zero;

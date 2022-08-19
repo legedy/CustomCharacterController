@@ -1,6 +1,6 @@
 return {
 	WalkSpeed = 16,
-	JumpSpeed = 20,
+	JumpSpeed = 150,
 
 	Animations = {
 		Walk = 'rbxassetid://180426354'
