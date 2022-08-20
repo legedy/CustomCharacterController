@@ -4,5 +4,6 @@ DebugFolder.Name = 'VisualDebug';
 DebugFolder.Parent = workspace;
 
 return {
-	Line = require(script.DebugLine)
+	Line = require(script.DebugLine),
+	Vector = require(script.DebugVector)
 };

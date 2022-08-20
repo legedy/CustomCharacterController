@@ -98,6 +98,12 @@ function Controller:Init(Character, Events, Prop)
 			Color = Color3.fromRGB(255, 0, 0),
 			LookVector = -Vector3.yAxis,
 			Length = 3,
+		},
+		Direction = VisualDebug.Vector.new{
+			Position = Character.RootPart.Position + Vector3.yAxis * 2,
+			Radius = 5,
+			Thickness = 5,
+			Offset = Vector3.yAxis * .5
 		}
 	};
 
@@ -181,6 +187,13 @@ function Controller:Step(deltaTime)
 			(Horizontal * self._moveVector.X)
 		) * Settings.WalkSpeed * deltaTime
 	);
+
+	if (self._moveVector ~= Vector2.zero) then
+		self._Debug.Direction:UpdateVector(
+			(Vertical * self._moveVector.Y) + (Horizontal * self._moveVector.X),
+			Root.Position + Vector3.yAxis * 2
+		);
+	end
 end
 
 return Controller;
