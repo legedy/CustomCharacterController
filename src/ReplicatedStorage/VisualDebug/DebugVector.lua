@@ -12,7 +12,7 @@ local function getPos(angle, scale)
 	) * scale;
 end
 
-local function Circle(adornee: BasePart, color: Color3, resolution: number, scale: number)
+local function Circle(adornee: BasePart, color: Color3, alwaysOnTop: boolean, resolution: number, scale: number)
 	local Folder = Instance.new('Folder');
 	Folder.Name = 'Circle';
 
@@ -22,7 +22,7 @@ local function Circle(adornee: BasePart, color: Color3, resolution: number, scal
 		local Line = Instance.new('LineHandleAdornment');
 		Line.Color3 = color;
 		Line.Adornee = adornee;
-		Line.AlwaysOnTop = true
+		Line.AlwaysOnTop = alwaysOnTop
 		Line.ZIndex = 0;
 		Line.Length = (currentPos - nextPos).Magnitude;
 		Line.CFrame = CFrame.lookAt(currentPos, nextPos);
@@ -46,9 +46,10 @@ end
 ]]
 function DebugLine.new(properties)
 	local Radius = properties.Radius or 5;
+	local AlwaysOnTop = properties.AlwaysOnTop or false;
 	local Position = properties.Position or Vector3.zero;
-	local CircleColor = properties.CircleColor or Color3.new(3, 0, 0);
-	local VectorColor = properties.VectorColor or Color3.new(0, 3, 0);
+	local CircleColor = properties.CircleColor or Color3.new(1, 0, 0);
+	local VectorColor = properties.VectorColor or Color3.new(0, 1, 0);
 	local Vector = properties.Vector or Vector3.xAxis;
 
 	local AdorneePart = Instance.new('Part');
@@ -64,13 +65,14 @@ function DebugLine.new(properties)
 	lineDebug.Color3 = VectorColor;
 	lineDebug.Thickness = properties.Thickness or 5;
 	lineDebug.Length = Radius;
-	lineDebug.AlwaysOnTop = true;
+	lineDebug.AlwaysOnTop = AlwaysOnTop;
 	lineDebug.ZIndex = 0;
 	lineDebug.Parent = AdorneePart;
 
 	local CircleFolder = Circle(
 		AdorneePart,
 		CircleColor,
+		AlwaysOnTop,
 		40,
 		Radius
 	);
@@ -85,12 +87,12 @@ function DebugLine.new(properties)
 	}, DebugLine);
 end
 
-function DebugLine:UpdateVector(vector: Vector3, position: Vector3?)
-	if (vector == Vector3.zero) then
-		vector = Vector3.xAxis;
-	end
+function DebugLine:UpdatePosition(position: Vector3)
+	self._Position = position;
+	self._BasePart.Position = position;
+end
 
-	self._BasePart.Position = position or self._Position;
+function DebugLine:UpdateVector(vector: Vector3)
 	self._Line.CFrame = CFrame.lookAt(Vector3.zero,
 		(vector.Unit * EXCLUDE_YAXIS * self._Radius)
 	);

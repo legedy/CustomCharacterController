@@ -188,10 +188,14 @@ function Controller:Step(deltaTime)
 		) * Settings.WalkSpeed * deltaTime
 	);
 
+	self._Debug.Direction:UpdatePosition(
+		Root.Position + Vector3.yAxis * 2
+	);
+
 	if (self._moveVector ~= Vector2.zero) then
 		self._Debug.Direction:UpdateVector(
-			(Vertical * self._moveVector.Y) + (Horizontal * self._moveVector.X),
-			Root.Position + Vector3.yAxis * 2
+			(Vertical * self._moveVector.Y) +
+			(Horizontal * self._moveVector.X)
 		);
 	end
 end
