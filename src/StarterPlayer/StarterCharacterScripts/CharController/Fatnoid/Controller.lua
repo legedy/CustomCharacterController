@@ -92,6 +92,7 @@ function Controller:Init(Character, Events, Prop)
 	self._Character = Character;
 
 	self._RaycastParams = RaycastParam;
+	self._DEBUG_MODE = Prop.DEBUG_MODE or false;
 	self._Debug = {
 		GroundRaycast = VisualDebug.Line.new{
 			Adornee = Character.RootPart,
@@ -164,7 +165,6 @@ function Controller:Step(deltaTime)
 		-Vector3.yAxis * (3 - self._velocity.Y),
 		self._RaycastParams
 	);
-	self._Debug.GroundRaycast:UpdateLength(3 - self._velocity.Y);
 
 	if (RayResult) then
 		self._velocity = Vector3.zero;
@@ -181,22 +181,46 @@ function Controller:Step(deltaTime)
 	local Vertical = Vector3.new(math.sin(Angle), 0, math.cos(Angle));
 	local Horizontal = Vertical:Cross(Vector3.yAxis);
 
-	Character:MoveTo(
-		Root.Position + self._velocity + Normalize(
-			(Vertical   * self._moveVector.Y) +
-			(Horizontal * self._moveVector.X)
-		) * Settings.WalkSpeed * deltaTime
-	);
-
-	self._Debug.Direction:UpdatePosition(
-		Root.Position + Vector3.yAxis * 2
+	local RelativeMoveVector = Normalize(
+		(Vertical * self._moveVector.Y) +
+		(Horizontal * self._moveVector.X)
 	);
 
 	if (self._moveVector ~= Vector2.zero) then
-		self._Debug.Direction:UpdateVector(
-			(Vertical * self._moveVector.Y) +
-			(Horizontal * self._moveVector.X)
+		(Character :: Model):PivotTo(CFrame.fromMatrix(
+			Root.Position,
+			RelativeMoveVector:Cross(Vector3.yAxis),
+			Vector3.yAxis
+		));
+	end
+
+	--TODO: Add character smooth rotation
+	-- print(
+	-- 	math.deg(math.acos(Normalize(
+	-- 		(Vertical   * self._moveVector.Y) +
+	-- 		(Horizontal * self._moveVector.X)
+	-- 	):Dot(Root.CFrame.LookVector)))
+	-- );
+
+	Character:TranslateBy(
+		self._velocity +
+		RelativeMoveVector *
+		(Settings.WalkSpeed * deltaTime)
+	);
+
+	if (self._DEBUG_MODE) then
+		self._Debug.GroundRaycast:UpdateLength(3 - self._velocity.Y);
+
+		self._Debug.Direction:UpdatePosition(
+			Root.Position + Vector3.yAxis * 2
 		);
+
+		if (self._moveVector ~= Vector2.zero) then
+			self._Debug.Direction:UpdateVector(
+				(Vertical * self._moveVector.Y) +
+				(Horizontal * self._moveVector.X)
+			);
+		end
 	end
 end
 
