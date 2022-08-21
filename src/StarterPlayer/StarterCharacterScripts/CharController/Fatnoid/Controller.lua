@@ -102,11 +102,15 @@ function Controller:Init(Character, Events, Prop)
 		},
 		Direction = VisualDebug.Vector.new{
 			Position = Character.RootPart.Position + Vector3.yAxis * 2,
+			VectorColor = Color3.fromRGB(50, 50, 255),
 			Radius = 5,
 			Thickness = 5,
 			Offset = Vector3.yAxis * .5
 		}
 	};
+
+	self._PreviousLookVector = Vector3.zAxis;
+	self._PreviousAngle = 0;
 
 	Character.RootPart.Anchored = true;
 	Character.RootPart.Position = Vector3.yAxis * 3;
@@ -186,12 +190,48 @@ function Controller:Step(deltaTime)
 		(Horizontal * self._moveVector.X)
 	);
 
+	local function slerp(v1, v2, t)
+		local r = math.acos(v1:Dot(v2));
+
+		if (math.abs(r) >= 0.001) then
+			return (
+				v1*math.sin((1 - t)*r) +
+				v2*math.sin(t*r)
+			) / math.sin(r)
+		end
+
+		return v1;
+	end
+
+	local function lerp(a, b, t)
+		return a + (b - a) * t;
+	end
+
+	local function rLerp(A, B, w)
+		local CS = (1-w)*math.cos(A) + w*math.cos(B);
+		local SN = (1-w)*math.sin(A) + w*math.sin(B);
+		return math.atan2(SN,CS);
+	end
+
 	if (self._moveVector ~= Vector2.zero) then
+		local CurrentLookVector = RelativeMoveVector:Cross(Vector3.yAxis);
+		-- local CurrentAngle = math.atan2(CurrentLookVector.X, CurrentLookVector.Z);
+		-- local Deg = lerp(self._PreviousAngle, CurrentAngle, 0.15);
+
+		local CurrentLookVector = slerp(
+			self._PreviousLookVector,
+			RelativeMoveVector:Cross(Vector3.yAxis),
+			.15
+		);
+
 		(Character :: Model):PivotTo(CFrame.fromMatrix(
 			Root.Position,
-			RelativeMoveVector:Cross(Vector3.yAxis),
+			CurrentLookVector, --Vector3.new(math.sin(Deg), 0, math.cos(Deg)),
 			Vector3.yAxis
 		));
+
+		self._PreviousLookVector = CurrentLookVector;
+		-- self._PreviousAngle = Deg;
 	end
 
 	--TODO: Add character smooth rotation
