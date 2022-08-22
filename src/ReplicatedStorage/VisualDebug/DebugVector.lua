@@ -1,3 +1,7 @@
+type vectors = {
+	[string]: {Color: Color3, Vector: Vector3}
+};
+
 local EXCLUDE_YAXIS = Vector3.new(1, 0, 1);
 
 local DebugLine = {};
@@ -44,7 +48,7 @@ end
 	-- Thickness: number?
 	```
 ]]
-function DebugLine.new(properties)
+function DebugLine.new(properties, vectors: vectors)
 	local Radius = properties.Radius or 5;
 	local AlwaysOnTop = properties.AlwaysOnTop or false;
 	local Position = properties.Position or Vector3.zero;
@@ -58,16 +62,24 @@ function DebugLine.new(properties)
 	AdorneePart.Position = Position;
 	AdorneePart.Size = Vector3.zero;
 	AdorneePart.Transparency = 1;
+	AdorneePart.CanQuery = false;
 
-	local lineDebug = Instance.new('LineHandleAdornment');
-	lineDebug.Adornee = AdorneePart;
-	lineDebug.CFrame = CFrame.lookAt(Vector3.zero, (Vector.Unit * EXCLUDE_YAXIS * Radius));
-	lineDebug.Color3 = VectorColor;
-	lineDebug.Thickness = properties.Thickness or 5;
-	lineDebug.Length = Radius;
-	lineDebug.AlwaysOnTop = AlwaysOnTop;
-	lineDebug.ZIndex = 0;
-	lineDebug.Parent = AdorneePart;
+	local LineAdornments = {};
+
+	for Name, Prop in vectors do
+		local line = Instance.new('LineHandleAdornment');
+		line.Name = Name;
+		line.Adornee = AdorneePart;
+		line.CFrame = CFrame.lookAt(Vector3.zero, (Prop.Vector.Unit * EXCLUDE_YAXIS * Radius));
+		line.Color3 = Prop.Color;
+		line.Thickness = properties.Thickness or 5;
+		line.Length = Radius;
+		line.AlwaysOnTop = AlwaysOnTop;
+		line.ZIndex = 0;
+		line.Parent = AdorneePart;
+
+		LineAdornments[Name] = line;
+	end
 
 	local CircleFolder = Circle(
 		AdorneePart,
@@ -81,7 +93,7 @@ function DebugLine.new(properties)
 	
 	return setmetatable({
 		_BasePart = AdorneePart,
-		_Line = lineDebug;
+		_Lines = LineAdornments;
 		_Position = Position;
 		_Radius = Radius;
 	}, DebugLine);
@@ -92,8 +104,8 @@ function DebugLine:UpdatePosition(position: Vector3)
 	self._BasePart.Position = position;
 end
 
-function DebugLine:UpdateVector(vector: Vector3)
-	self._Line.CFrame = CFrame.lookAt(Vector3.zero,
+function DebugLine:UpdateVector(name: string, vector: Vector3)
+	self._Lines[name].CFrame = CFrame.lookAt(Vector3.zero,
 		(vector.Unit * EXCLUDE_YAXIS * self._Radius)
 	);
 end
