@@ -44,7 +44,7 @@ Controller._velocity = Vector3.zero;
 Controller._Events = {};
 Controller._Settings = {};
 Controller._Character = nil;
-Controller._Remote = nil;
+Controller._Remotes = nil;
 
 Controller._RaycastParams = nil;
 Controller._DEBUG_MODE = false;
@@ -104,7 +104,7 @@ local Keybinds = {
 	}
 };
 
-function Controller:Init(Character, Position, Events, Prop)
+function Controller:Init(Character, Remotes, Events, Prop)
 	self.Init = nil;
 
 	local RaycastParam = RaycastParams.new();
@@ -115,7 +115,7 @@ function Controller:Init(Character, Position, Events, Prop)
 	self._Events = Events;
 	self._Settings = Prop;
 	self._Character = Character;
-	self._Remote = Position;
+	self._Remotes = Remotes;
 
 	self._RaycastParams = RaycastParam;
 	self._DEBUG_MODE = Prop.DEBUG_MODE or false;
@@ -267,7 +267,7 @@ function Controller:Step(deltaTime)
 		end
 	end
 
-	self._Remote:Fire(Root.Position);
+	self._Remotes.Position:Fire(Root.Position);
 end
 
 return Controller;

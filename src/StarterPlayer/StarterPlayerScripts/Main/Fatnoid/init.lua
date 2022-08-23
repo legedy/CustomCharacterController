@@ -25,13 +25,16 @@ BridgeNet.Start({
 	[BridgeNet.DefaultSend] = 60
 });
 
-local PositionRemote = BridgeNet.CreateBridge('Position');
+local Remotes = {
+	Position = BridgeNet.CreateBridge('Position')
+};
 
 local Fatnoid = {};
 
 function Fatnoid:Init()
-	Camera.EnableShiftLockCamera();
-	Controller:Init(Clone, PositionRemote, Events, Settings);
+	Camera:Init(Clone);
+	Camera:EnableShiftLockCamera();
+	Controller:Init(Clone, Remotes, Events, Settings);
 	Animator:Init(Clone, Events, Settings);
 end
 

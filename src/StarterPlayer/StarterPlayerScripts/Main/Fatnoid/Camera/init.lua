@@ -39,59 +39,63 @@ end
 -------------------------  Functions  ------------------------------
 --------------------------------------------------------------------
 
+function Module:Init(Character)
+	
+end
+
 --> Shift Lock
-function Module.EnableShiftLockCamera()
-	Module.Connections.LockMousePress = UserInputService.InputBegan:Connect(_LockMousePress)
-	Module.Connections.LockMouseRelease = UserInputService.InputEnded:Connect(_LockMouseRelease)
+function Module:EnableShiftLockCamera()
+	self.Connections.LockMousePress = UserInputService.InputBegan:Connect(_LockMousePress)
+	self.Connections.LockMouseRelease = UserInputService.InputEnded:Connect(_LockMouseRelease)
 	ContextActionService:BindAction("MouseMovementTrack", _MouseMovementTrack, false, Enum.UserInputType.MouseMovement, Enum.UserInputType.Touch)
 	RunService:BindToRenderStep("ShiftLock", 300, CameraModes.OverTheShoulder)
 end
 
-function Module.DisableShiftLockCamera()
-	if not Module.Connections.LockCenter then return end
+function Module:DisableShiftLockCamera()
+	if not self.Connections.LockCenter then return end
 
-	Module.Connections.LockMousePress:Disconnect();
-	Module.Connections.LockMouseRelease:Disconnect();
+	self.Connections.LockMousePress:Disconnect();
+	self.Connections.LockMouseRelease:Disconnect();
 	ContextActionService:UnbindAction("MouseMovementTrack");
 	RunService:UnbindFromRenderStep("ShiftLock");
 end
 
 --> Isometric Camera
-function Module.EnableIsometricCamera()
+function Module:EnableIsometricCamera()
 	RunService:BindToRenderStep("IsometricCamera", Enum.RenderPriority.Camera.Value, CameraModes.IsometricCamera)
 
 end
 
-function Module.DisableIsometricCamera()
+function Module:DisableIsometricCamera()
 	RunService:UnbindFromRenderStep("IsometricCamera")
 end
 
 --> Top Down Camera
-function Module.EnableTopDownCamera()
+function Module:EnableTopDownCamera()
 	RunService:BindToRenderStep("TopDown", Enum.RenderPriority.Camera.Value, CameraModes.TopDownCamera)
 
 end 
 
-function Module.DisableTopDownCamera()
+function Module:DisableTopDownCamera()
 	RunService:UnbindFromRenderStep("TopDown")
 
 end
 
 --> SideScrollCamera
-function Module.EnableSideScrollingCamera()
+function Module:EnableSideScrollingCamera()
 	RunService:BindToRenderStep("SideScroll", Enum.RenderPriority.Camera.Value, CameraModes.SideScrollingCamera)
 end
 
-function Module.DisableSideScrollingCamera()
+function Module:DisableSideScrollingCamera()
 	RunService:UnbindFromRenderStep("SideScroll")
 end
 
 --> Face Mouse
-function Module.FaceCharacterToMouse()
+function Module:FaceCharacterToMouse()
 	RunService:BindToRenderStep("FaceCharacterToMouse", Enum.RenderPriority.Character.Value, CameraModes.FaceCharacterToMouse)
 end
 
-function Module.StopFacingMouse()
+function Module:StopFacingMouse()
 	RunService:UnbindFromRenderStep("FaceCharacterToMouse")
 end
 

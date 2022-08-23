@@ -9,9 +9,9 @@ BridgeNet.Start{
 	[BridgeNet.DefaultSend] = 60
 };
 
-local Remote = BridgeNet.CreateBridge("Position")
+local PlayerPositionUpdate = BridgeNet.CreateBridge('Position');
 
-Remote:Connect(function(player: Player, pos: Vector3)
+PlayerPositionUpdate:Connect(function(player: Player, pos: Vector3)
 	workspace[player.Name]:PivotTo(CFrame.new(pos))
 end)
 

@@ -8,8 +8,7 @@ local UserInputService = game:GetService("UserInputService");
 local Players = game:GetService("Players");
 
 --> Constants
-local DownVector = Vector3.new(0,-1,0);
-Module.Epsilon = 1e-5;
+local Epsilon = 1e-5;
 Module.CameraAngleX = 0;
 Module.CameraAngleY = 0;
 
@@ -70,13 +69,13 @@ end
 local function GetViewMatrix(Eye, Focus)
 	-- Faster alternative to cframe.lookat for our case since we are more commonly prone to special cases such as: when focus is facing up/down or if focus and eye are colinear vectors
 	local XAxis = Focus-Eye -- Lookvector
-	if (XAxis:Dot(XAxis) <= Module.Epsilon) then 
+	if (XAxis:Dot(XAxis) <= Epsilon) then 
 		return CFrame.new(Eye.X, Eye.Y, Eye.Z, 1, 0, 0, 0, 1, 0, 0, 0, 1) 
 	end
 	XAxis = XAxis.Unit
 	local Xx, Xy, Xz = XAxis.X, XAxis.Y, XAxis.Z
 	local RNorm = (((Xz*Xz)+(Xx*Xx))) -- R:Dot(R), our right vector
-	if RNorm <= Module.Epsilon and math.abs(XAxis.Y) > 0 then
+	if RNorm <= Epsilon and math.abs(XAxis.Y) > 0 then
  		return CFrame.fromMatrix(Eye, -math.sign(XAxis.Y)*Vector3.zAxis, Vector3.xAxis)
 	end
 	RNorm = 1/(RNorm^0.5) -- take the root of our squared norm and inverse division
@@ -136,7 +135,7 @@ Module.TopDownCamera = function(_, FaceMouse, MouseSensitivity, Offset, Directio
 	FaceMouse = FaceMouse or Configs.TopDownFaceMouse
 	MouseSensitivity = MouseSensitivity or Configs.TopDownMouseSensitivity
 	Distance = Distance or Configs.TopDownDistance
-	Direction = Direction or DownVector
+	Direction = Direction or -Vector3.yAxis
 	Offset = Offset or Configs.TopDownOffset
 	_DisableRobloxCamera()
 
