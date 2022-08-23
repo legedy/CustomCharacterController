@@ -32,7 +32,7 @@ local Remotes = {
 local Fatnoid = {};
 
 function Fatnoid:Init()
-	Camera:Init(Clone);
+	Camera:Init(Clone, Events, Settings);
 	Camera:EnableShiftLockCamera();
 	Controller:Init(Clone, Remotes, Events, Settings);
 	Animator:Init(Clone, Events, Settings);

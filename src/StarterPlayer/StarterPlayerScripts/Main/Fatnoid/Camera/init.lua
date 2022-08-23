@@ -3,11 +3,13 @@
 local Module = {}
 Module.Connections = {}
 
-local CameraModes = require(script:WaitForChild("CameraModes"))
+local ReplicatedStorage = game:GetService('ReplicatedStorage');
+local RunService = game:GetService("RunService");
+local UserInputService = game:GetService("UserInputService");
+local ContextActionService = game:GetService("ContextActionService");
 
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local ContextActionService = game:GetService("ContextActionService")
+local Maid = require(ReplicatedStorage.Maid).new();
+local CameraModes = require(script:WaitForChild("CameraModes"));
 
 local function _LockMousePress(Input)
 	if Input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -39,8 +41,20 @@ end
 -------------------------  Functions  ------------------------------
 --------------------------------------------------------------------
 
-function Module:Init(Character)
-	
+function Module:Init(Character, Events, Settings)
+
+	local CharacterAdded = Events.CharacterAdded:Connect(function(Char)
+		
+	end);
+	local CharacterRemoved = Events.CharacterRemoved:Connect(function()
+		
+	end);
+
+	Maid:GiveTask(function()
+		
+	end)
+
+	Maid
 end
 
 --> Shift Lock
