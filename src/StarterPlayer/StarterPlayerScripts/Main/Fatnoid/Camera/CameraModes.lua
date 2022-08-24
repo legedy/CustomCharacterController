@@ -20,18 +20,11 @@ local ScreenSize = Camera.ViewportSize;
 local ScreenSizeX, ScreenSizeY = ScreenSize.X, ScreenSize.Y;
 local PixelCoordinateRatioX, PixelCoordinateRatioY = 1/ScreenSizeX, 1/ScreenSizeY;
 
-local Character = Player.Character or Player.CharacterAdded:Wait();
-local Root = Character:WaitForChild("RootPart");
+local Root = nil;
 
 --------------------------------------------------------------------
 --------------------------  Privates  ------------------------------
 --------------------------------------------------------------------
-
-local function _DisableRobloxCamera()
-	if Camera.CameraType ~= Enum.CameraType.Scriptable then
-		Camera.CameraType = Enum.CameraType.Scriptable
-	end
-end
 
 local function _ClampAngle(Angle: number)
 	if (Angle > 360) then
@@ -44,14 +37,11 @@ local function _ClampAngle(Angle: number)
 end
 
 local function _GetRotationXY(X, Y)
-	X = X or Module.CameraAngleX
-	Y = Y or Module.CameraAngleY
-	
-	local Cosy, Siny = math.cos(X),  math.sin(X)
-	local Cosx, Sinx = math.cos(Y), math.sin(Y)
+	local Cosy, Siny = math.cos(X), math.sin(X);
+	local Cosx, Sinx = math.cos(Y), math.sin(Y);
 	return CFrame.new(
-		0, 0, 0, 
-		Cosy, Siny*Sinx, Siny*Cosx, 
+		0, 0, 0,
+		Cosy, Siny*Sinx, Siny*Cosx,
 		0, Cosx, -Sinx,
 		-Siny, Cosy*Sinx, Cosy*Cosx
 	)
@@ -100,13 +90,24 @@ end
 -------------------------  Functions  ------------------------------
 --------------------------------------------------------------------
 
+function Module:Init(Char, Settings)
+	Camera.CameraType = Enum.CameraType.Scriptable;
+
+	self:UpdateCharacter(Char);
+
+	self.Settings = Settings;
+end
+
+function Module:UpdateCharacter(NewChar)
+	Root = NewChar:WaitForChild("RootPart");
+end
+
 function Module:UpdateCameraAngle(X, Y)
-	self.CameraAngleX = _ClampAngle(self.CameraAngleX + X);
-	self.CameraAngleY = math.clamp(self.CameraAngleY + Y, -75, 75);
+	self.CameraAngleX = _ClampAngle(self.CameraAngleX - X);
+	self.CameraAngleY = math.clamp(self.CameraAngleY - Y, -75, 75);
 end
 
 function Module.Regular()
-	_DisableRobloxCamera()
 
 	local Origin = CFrame.new((Root.CFrame.Position)) *
 		_GetRotationXY(
@@ -126,7 +127,7 @@ function Module.Regular()
 end
 
 
-function Module.Isometric(_, CameraDepth, HeightOffset, FOV)
+function Module.Isometric()
 	CameraDepth = CameraDepth or Configs.IsometricCameraDepth
 	HeightOffset = HeightOffset or Configs.IsometricHeightOffset
 	Camera.FieldOfView = FOV or Configs.IsometricFieldOfView
@@ -141,7 +142,6 @@ function Module.SideScrolling(_, CameraDepth, HeightOffset, FOV)
 	CameraDepth = CameraDepth or Configs.SideCameraDepth
 	HeightOffset = HeightOffset or Configs.SideHeightOffset
 	Camera.FieldOfView = FOV or Configs.SideFieldOfView
-	_DisableRobloxCamera()
 
 	local Focus = Root.Position + Vector3.new(0, HeightOffset, 0);
 	local Eye = Vector3.new(Focus.X, Focus.Y, CameraDepth);
@@ -155,7 +155,6 @@ function Module.TopDown(_, FaceMouse, MouseSensitivity, Offset, Direction, Dista
 	Distance = Distance or Configs.TopDownDistance
 	Direction = Direction or -Vector3.yAxis
 	Offset = Offset or Configs.TopDownOffset
-	_DisableRobloxCamera()
 
 	local M = UserInputService:GetMouseLocation()
 	local Axis = Vector3.new(-((M.Y-ScreenSizeY*0.5)*PixelCoordinateRatioY),0,((M.Y-ScreenSizeX*0.5)*PixelCoordinateRatioX))

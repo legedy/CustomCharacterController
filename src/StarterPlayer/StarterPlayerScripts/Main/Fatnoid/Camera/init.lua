@@ -36,19 +36,18 @@ end
 
 function Module:Init(Character, Events, Settings)
 
-	Events.CharacterAdded:Connect(function(Char)
+	CameraModes:Init(Character, Settings);
 
+	Events.CharacterAdded:Connect(function(Char)
+		CameraModes:UpdateCharacter(Char);
 	end);
 	Events.CharacterRemoved:Connect(function()
 		self:Disable();
 	end);
 
-	Maid:GiveTask(function()
-		
-	end)
 end
 
-function Module:Enable(CameraType)
+function Module:Enable(CameraType: string)
 	if (self._CurrentCameraMode) then
 		error('Camera already enabled.');
 	else

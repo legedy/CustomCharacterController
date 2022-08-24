@@ -3,13 +3,6 @@ local ReplicatedStorage = game:GetService('ReplicatedStorage');
 
 local Player = Players.LocalPlayer;
 
-local Clone = ReplicatedStorage.Dummy:Clone();
-Clone.Name = Player.Name;
-Clone.Parent = workspace;
-Clone.PrimaryPart.Anchored = true;
-
-Player.Character = Clone;
-
 local BridgeNet = require(ReplicatedStorage.BridgeNet);
 local Signal = require(ReplicatedStorage.Signal);
 
@@ -32,10 +25,18 @@ local Remotes = {
 local Fatnoid = {};
 
 function Fatnoid:Init()
+	local Clone = ReplicatedStorage.Dummy:Clone();
+	Clone.Name = Player.Name;
+	Clone.Parent = workspace;
+	Clone.PrimaryPart.Anchored = true;
+
 	Camera:Init(Clone, Events, Settings);
-	Camera:EnableShiftLockCamera();
 	Controller:Init(Clone, Remotes, Events, Settings);
 	Animator:Init(Clone, Events, Settings);
+
+	Events.CharacterAdded:Fire(Clone);
+
+	Camera:Enable('Regular');
 end
 
 return Fatnoid;
