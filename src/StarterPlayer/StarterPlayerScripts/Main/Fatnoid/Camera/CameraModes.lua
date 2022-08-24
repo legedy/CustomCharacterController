@@ -12,19 +12,16 @@ local Epsilon = 1e-5;
 Module.CameraAngleX = 0;
 Module.CameraAngleY = 0;
 
-Module.MouseSensitivity = 0.5;
+local Player = Players.LocalPlayer;
+local Mouse = Player:GetMouse();
 
+local Camera = workspace.CurrentCamera;
+local ScreenSize = Camera.ViewportSize;
+local ScreenSizeX, ScreenSizeY = ScreenSize.X, ScreenSize.Y;
+local PixelCoordinateRatioX, PixelCoordinateRatioY = 1/ScreenSizeX, 1/ScreenSizeY;
 
-local Player = Players.LocalPlayer
-local Mouse = Player:GetMouse()
-
-local Camera = workspace.CurrentCamera
-local ScreenSize = Camera.ViewportSize
-local ScreenSizeX, ScreenSizeY = ScreenSize.X, ScreenSize.Y
-local PixelCoordinateRatioX, PixelCoordinateRatioY = 1/ScreenSizeX, 1/ScreenSizeY
-
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Root = Character:WaitForChild("RootPart")
+local Character = Player.Character or Player.CharacterAdded:Wait();
+local Root = Character:WaitForChild("RootPart");
 
 --------------------------------------------------------------------
 --------------------------  Privates  ------------------------------
@@ -36,6 +33,15 @@ local function _DisableRobloxCamera()
 	end
 end
 
+local function _ClampAngle(Angle: number)
+	if (Angle > 360) then
+		Angle -= 360;
+	elseif (Angle < 0) then
+		Angle += 360;
+	end
+
+	return Angle;
+end
 
 local function _GetRotationXY(X, Y)
 	X = X or Module.CameraAngleX
@@ -66,7 +72,7 @@ local function _GetPositionToWorldByOffset(OriginCF, XOffset, YOffset, ZOffset)
 	)
 end
 
-local function GetViewMatrix(Eye, Focus)
+local function _GetViewMatrix(Eye, Focus)
 	-- Faster alternative to cframe.lookat for our case since we are more commonly prone to special cases such as: when focus is facing up/down or if focus and eye are colinear vectors
 	local XAxis = Focus-Eye -- Lookvector
 	if (XAxis:Dot(XAxis) <= Epsilon) then 
@@ -84,7 +90,7 @@ local function GetViewMatrix(Eye, Focus)
 	local UNorm = 1/((Ux*Ux)+(Uy*Uy)+(Uz*Uz))^0.5 -- inverse division and multiply this ratio rather than dividing each component
 	return CFrame.new(
 		Eye.X,Eye.Y,Eye.Z,
-		Rx, -Xy*Rz, Ux*UNorm, 
+		Rx, -Xy*Rz, Ux*UNorm,
 		0, (Rz*Xx)-Rx*Xz, Uy*UNorm,
 		Rz, Xy*Rx, Uz*UNorm
 	)
@@ -94,44 +100,56 @@ end
 -------------------------  Functions  ------------------------------
 --------------------------------------------------------------------
 
-Module.OverTheShoulder = function(_, CameraAngleX, CameraAngleY, Lerp)
-	Module.CameraAngleX = CameraAngleX or Module.CameraAngleX
-	Module.CameraAngleY = CameraAngleY or Module.CameraAngleY
+function Module:UpdateCameraAngle(X, Y)
+	self.CameraAngleX = _ClampAngle(self.CameraAngleX + X);
+	self.CameraAngleY = math.clamp(self.CameraAngleY + Y, -75, 75);
+end
+
+function Module.Regular()
 	_DisableRobloxCamera()
 
-	local Origin = CFrame.new((Root.CFrame.Position)) * _GetRotationXY(math.rad(Module.CameraAngleX), math.rad(Module.CameraAngleY))
-	local Eye = _GetPositionToWorldByOffset(Origin)
-	local Focus = _GetPositionToWorldByOffset(Origin, Configs.CamLockOffset.X, Configs.CamLockOffset.Y, -10000)
+	local Origin = CFrame.new((Root.CFrame.Position)) *
+		_GetRotationXY(
+			math.rad(Module.CameraAngleX),
+			math.rad(Module.CameraAngleY));
 
-	Camera.CFrame = GetViewMatrix(Eye, Focus)
+	local Eye = _GetPositionToWorldByOffset(Origin);
+
+	local Focus = _GetPositionToWorldByOffset(
+		Origin,
+		Configs.CamLockOffset.X,
+		Configs.CamLockOffset.Y,
+		-10000
+	);
+
+	Camera.CFrame = _GetViewMatrix(Eye, Focus);
 end
 
 
-Module.IsometricCamera = function(_, CameraDepth, HeightOffset, FOV)
+function Module.Isometric(_, CameraDepth, HeightOffset, FOV)
 	CameraDepth = CameraDepth or Configs.IsometricCameraDepth
 	HeightOffset = HeightOffset or Configs.IsometricHeightOffset
 	Camera.FieldOfView = FOV or Configs.IsometricFieldOfView
-	_DisableRobloxCamera()
+	_DisableRobloxCamera();
 
-	local Root = Root.Position + Vector3.new(0, HeightOffset, 0)
-	local Eye = Root + Vector3.new(CameraDepth, CameraDepth, CameraDepth)	
-	Camera.CFrame = GetViewMatrix(Eye, Root)
+	local Root = Root.Position + Vector3.new(0, HeightOffset, 0);
+	local Eye = Root + Vector3.new(CameraDepth, CameraDepth, CameraDepth);
+	Camera.CFrame = _GetViewMatrix(Eye, Root);
 end
 
-
-Module.SideScrollingCamera = function(_, CameraDepth, HeightOffset, FOV)
+function Module.SideScrolling(_, CameraDepth, HeightOffset, FOV)
 	CameraDepth = CameraDepth or Configs.SideCameraDepth
 	HeightOffset = HeightOffset or Configs.SideHeightOffset
 	Camera.FieldOfView = FOV or Configs.SideFieldOfView
 	_DisableRobloxCamera()
 
-	local Focus = Root.Position + Vector3.new(0, HeightOffset, 0)
-	local Eye = Vector3.new(Focus.X, Focus.Y, CameraDepth)
-	Camera.CFrame =  GetViewMatrix(Eye, Focus)
+	local Focus = Root.Position + Vector3.new(0, HeightOffset, 0);
+	local Eye = Vector3.new(Focus.X, Focus.Y, CameraDepth);
+	Camera.CFrame =  _GetViewMatrix(Eye, Focus);
 end
 
 
-Module.TopDownCamera = function(_, FaceMouse, MouseSensitivity, Offset, Direction, Distance)
+function Module.TopDown(_, FaceMouse, MouseSensitivity, Offset, Direction, Distance)
 	FaceMouse = FaceMouse or Configs.TopDownFaceMouse
 	MouseSensitivity = MouseSensitivity or Configs.TopDownMouseSensitivity
 	Distance = Distance or Configs.TopDownDistance
@@ -144,7 +162,7 @@ Module.TopDownCamera = function(_, FaceMouse, MouseSensitivity, Offset, Directio
 	
 	local Eye = (Distance + (Root.Position+Offset)) + Axis * MouseSensitivity 
 	local Focus = Eye + Direction
-	Camera.CFrame = GetViewMatrix(Eye, Focus)
+	Camera.CFrame = _GetViewMatrix(Eye, Focus)
 	
 	if FaceMouse then
 		local Forward = (Root.Position - Mouse.Hit.Position).Unit
@@ -153,8 +171,8 @@ Module.TopDownCamera = function(_, FaceMouse, MouseSensitivity, Offset, Directio
 	end
 end
 
-Module.FaceCharacterToMouse = function(_, Alpha, GoalCF)
-	GoalCF = GoalCF or GetViewMatrix(Root.Position, Vector3.new(Mouse.Hit.Position.X, Root.Position.Y, Mouse.Hit.Position.Z))
+Module.CharacterToMouse = function(_, Alpha, GoalCF)
+	GoalCF = GoalCF or _GetViewMatrix(Root.Position, Vector3.new(Mouse.Hit.Position.X, Root.Position.Y, Mouse.Hit.Position.Z))
 	Root.CFrame = Root.CFrame:Lerp(GoalCF, Alpha or Configs.FaceCharacterAlpha)
 end
 

@@ -1,7 +1,8 @@
 --> Forked from FastCameraModule by 4thAxis (thx btw)
 
-local Module = {}
-Module.Connections = {}
+local Module = {};
+Module._Sensitivity = .5;
+Module._CurrentCameraMode = nil;
 
 local ReplicatedStorage = game:GetService('ReplicatedStorage');
 local RunService = game:GetService("RunService");
@@ -11,31 +12,23 @@ local ContextActionService = game:GetService("ContextActionService");
 local Maid = require(ReplicatedStorage.Maid).new();
 local CameraModes = require(script:WaitForChild("CameraModes"));
 
-local function _LockMousePress(Input)
-	if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
-	end
-end
-
-local function _LockMouseRelease(Input)
-	if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+local function _LockMouse(Began: boolean, Input: InputObject)
+	if (Input.UserInputType == Enum.UserInputType.MouseButton1) then
+		UserInputService.MouseBehavior = (Began) and
+			Enum.MouseBehavior.LockCurrentPosition or
+			Enum.MouseBehavior.Default
 	end
 end
 
 
-local function _MouseMovementTrack(_, Input, Object)
-	if Input == Enum.UserInputState.Change then
-		CameraModes.OverTheShoulder(nil,
-			CameraModes.CameraAngleX-(Object.Delta.X * CameraModes.MouseSensitivity),
-			math.clamp(
-				CameraModes.CameraAngleY-(Object.Delta.Y * CameraModes.MouseSensitivity),
-				-75, 75
-			)
+local function _MouseMovementTrack(_, Input: Enum.UserInputState, Object: InputObject)
+	if (Input == Enum.UserInputState.Change) then
+		CameraModes:UpdateCameraAngle(
+			Object.Delta.X * Module._Sensitivity,
+			Object.Delta.Y * Module._Sensitivity
 		);
 	end
 end
-
 
 --------------------------------------------------------------------
 -------------------------  Functions  ------------------------------
@@ -43,74 +36,58 @@ end
 
 function Module:Init(Character, Events, Settings)
 
-	local CharacterAdded = Events.CharacterAdded:Connect(function(Char)
-		
+	Events.CharacterAdded:Connect(function(Char)
+
 	end);
-	local CharacterRemoved = Events.CharacterRemoved:Connect(function()
-		
+	Events.CharacterRemoved:Connect(function()
+		self:Disable();
 	end);
 
 	Maid:GiveTask(function()
 		
 	end)
-
-	Maid
 end
 
---> Shift Lock
-function Module:EnableShiftLockCamera()
-	self.Connections.LockMousePress = UserInputService.InputBegan:Connect(_LockMousePress)
-	self.Connections.LockMouseRelease = UserInputService.InputEnded:Connect(_LockMouseRelease)
-	ContextActionService:BindAction("MouseMovementTrack", _MouseMovementTrack, false, Enum.UserInputType.MouseMovement, Enum.UserInputType.Touch)
-	RunService:BindToRenderStep("ShiftLock", 300, CameraModes.OverTheShoulder)
+function Module:Enable(CameraType)
+	if (self._CurrentCameraMode) then
+		error('Camera already enabled.');
+	else
+		self._CurrentCameraMode = CameraType;
+	end
+
+	RunService:BindToRenderStep(CameraType..'Camera',
+		Enum.RenderPriority.Camera.Value,
+		CameraModes[CameraType]
+	);
+
+	if (CameraType == 'Regular') then
+		
+		ContextActionService:BindAction('MouseMovementTrack',
+			_MouseMovementTrack,
+			false,
+			Enum.UserInputType.MouseMovement,
+			Enum.UserInputType.Touch
+		);
+
+		Maid:GiveTask(UserInputService.InputBegan:Connect(function(...)
+			_LockMouse(true, ...);
+		end));
+		Maid:GiveTask(UserInputService.InputEnded:Connect(function(...)
+			_LockMouse(false, ...);
+		end));
+		Maid:GiveTask(function()
+			ContextActionService:UnBindAction('MouseMovementTrack');
+		end);
+
+	end
+
+	Maid:GiveTask(function()
+		RunService:UnbindFromRenderStep(CameraType..'Camera');
+	end);
 end
 
-function Module:DisableShiftLockCamera()
-	if not self.Connections.LockCenter then return end
-
-	self.Connections.LockMousePress:Disconnect();
-	self.Connections.LockMouseRelease:Disconnect();
-	ContextActionService:UnbindAction("MouseMovementTrack");
-	RunService:UnbindFromRenderStep("ShiftLock");
-end
-
---> Isometric Camera
-function Module:EnableIsometricCamera()
-	RunService:BindToRenderStep("IsometricCamera", Enum.RenderPriority.Camera.Value, CameraModes.IsometricCamera)
-
-end
-
-function Module:DisableIsometricCamera()
-	RunService:UnbindFromRenderStep("IsometricCamera")
-end
-
---> Top Down Camera
-function Module:EnableTopDownCamera()
-	RunService:BindToRenderStep("TopDown", Enum.RenderPriority.Camera.Value, CameraModes.TopDownCamera)
-
-end 
-
-function Module:DisableTopDownCamera()
-	RunService:UnbindFromRenderStep("TopDown")
-
-end
-
---> SideScrollCamera
-function Module:EnableSideScrollingCamera()
-	RunService:BindToRenderStep("SideScroll", Enum.RenderPriority.Camera.Value, CameraModes.SideScrollingCamera)
-end
-
-function Module:DisableSideScrollingCamera()
-	RunService:UnbindFromRenderStep("SideScroll")
-end
-
---> Face Mouse
-function Module:FaceCharacterToMouse()
-	RunService:BindToRenderStep("FaceCharacterToMouse", Enum.RenderPriority.Character.Value, CameraModes.FaceCharacterToMouse)
-end
-
-function Module:StopFacingMouse()
-	RunService:UnbindFromRenderStep("FaceCharacterToMouse")
+function Module:Disable()
+	Maid:Destroy();
 end
 
 return Module
