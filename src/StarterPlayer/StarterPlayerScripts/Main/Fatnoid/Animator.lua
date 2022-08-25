@@ -1,6 +1,9 @@
+local PathfindingService = game:GetService("PathfindingService")
+local Types = require(script.Parent._TypeDefinition);
+
 local Animator = {};
 
-function Animator:Init(Character, Events, Settings)
+function Animator:Init(Character, Events: Types.Events, Settings)
 	local AnimatorInstance = Character:WaitForChild('Animator');
 
 	self._Events = Events;
@@ -27,7 +30,18 @@ function Animator:LoadAnimations(AnimatorInstance, Settings)
 	return LoadedAnimations;
 end
 
-function Animator:BindAnimations(Animations, Events)
+function Animator:BindAnimations(Animations, Events: Types.Events)
+
+	Events.Jumping:Connect(function()
+		Animations.Jump:Play();
+		print('Jumped')
+	end);
+
+	Events.FreeFalling:Connect(function()
+		Animations.Fall:Play();
+		print('Falling')
+	end);
+
 	Events.Walking:Connect(function(isWalking)
 		if (isWalking) then
 			Animations.Walk:Play(0.1);

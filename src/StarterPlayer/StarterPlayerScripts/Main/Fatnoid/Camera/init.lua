@@ -75,7 +75,7 @@ function Module:Enable(CameraType: string)
 			_LockMouse(false, ...);
 		end));
 		Maid:GiveTask(function()
-			ContextActionService:UnBindAction('MouseMovementTrack');
+			ContextActionService:UnbindAction('MouseMovementTrack');
 		end);
 
 	end
@@ -86,6 +86,8 @@ function Module:Enable(CameraType: string)
 end
 
 function Module:Disable()
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default;
+	self._CurrentCameraMode = nil;
 	Maid:Destroy();
 end
 

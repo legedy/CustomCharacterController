@@ -11,8 +11,9 @@ BridgeNet.Start{
 
 local PlayerPositionUpdate = BridgeNet.CreateBridge('Position');
 
-PlayerPositionUpdate:Connect(function(player: Player, pos: Vector3)
-	workspace[player.Name]:PivotTo(CFrame.new(pos))
+PlayerPositionUpdate:Connect(function(player: Player, cframe: CFrame)
+	-- PlayerPositionUpdate:FireToAllExcept(player, cframe);
+	-- workspace[player.Name]:PivotTo(cframe);
 end)
 
 

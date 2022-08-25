@@ -6,4 +6,6 @@ return {
 	CharacterRemoved = Signal.new(),
 
 	Walking = Signal.new(),
+	Jumping = Signal.new(),
+	FreeFalling = Signal.new()
 };

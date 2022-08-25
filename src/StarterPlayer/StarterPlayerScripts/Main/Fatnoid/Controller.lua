@@ -30,7 +30,7 @@ local function Normalize(vec3: Vector3)
 end
 
 Controller._movementValue = {
-	_isJumping = false,
+	isJumping = false,
 
 	forward = 0,
 	backward = 0,
@@ -97,7 +97,7 @@ local Keybinds = {
 	[Enum.KeyCode.Space] = {
 		Name = 'jumpAction',
 		Callback = function(_, inputState, _)
-			Controller:UpdateJump(inputState ~= Enum.UserInputState.End);
+			Controller:UpdateJump(inputState == Enum.UserInputState.Begin);
 
 			return Enum.ContextActionResult.Pass
 		end
@@ -192,24 +192,47 @@ function Controller:Step(deltaTime)
 	local Settings = self._Settings;
 	local CamLookVector = Camera.CFrame.LookVector;
 
-	local Character = self._Character;
-	local Root = Character.RootPart;
+	local Character: Model = self._Character;
+	local Root: BasePart = Character.RootPart;
 
+	--> Settings
+	local DEBUG = self._Debug;
+
+	local WalkSpeed = Settings.WalkSpeed;
+	local JumpSpeed = Settings.JumpSpeed;
+	local FloorClampThreshold = Settings.FloorClampThreshold;
+	local HipHeight = Settings.HipHeight;
+
+	--[[>
+		Raycast downwards with the velocity,
+		to prevent the character from phasing
+		through the floor when falling at
+		high speeds.
+	]]
 	local RayResult = workspace:Raycast(
 		Root.Position,
-		-Vector3.yAxis * (3 - self._velocity.Y),
+		-Vector3.yAxis * (HipHeight - self._velocity.Y),
 		self._RaycastParams
 	);
 
 	if (RayResult) then
 		self._velocity = Vector3.zero;
 
+		local Displacement = (HipHeight - RayResult.Distance);
+
+		if (math.abs(Displacement) > FloorClampThreshold) then
+			Character:TranslateBy(
+				Vector3.yAxis * (Displacement - FloorClampThreshold)
+			);
+		elseif (Displacement < 0) then
+			Character:TranslateBy(Vector3.yAxis * -Displacement);
+		end
+
 		if (self._movementValue._isJumping) then
-			self._velocity += Vector3.yAxis * Settings.JumpSpeed;
-			--self:UpdateJump(false);
+			self._velocity += Vector3.yAxis * JumpSpeed * deltaTime;
 		end
 	else
-		self._velocity -= Vector3.yAxis * (Vector3.yAxis * (workspace.Gravity/100) * deltaTime);
+		self._velocity -= Vector3.yAxis * (Vector3.yAxis * (workspace.Gravity/100*deltaTime));
 	end
 
 	local Angle = math.atan2(CamLookVector.X, CamLookVector.Z);
@@ -237,37 +260,37 @@ function Controller:Step(deltaTime)
 		self._PreviousLookVector = CurrentLookVector;
 	end
 
-	(Character :: Model):PivotTo(
+	Character:PivotTo(
 		(CFrame.new(Root.Position) * self._PreviousCFrameRot) +
 		self._velocity +
 		RelativeMoveVector *
-		(Settings.WalkSpeed * deltaTime)
+		(WalkSpeed * deltaTime)
 	);
 
 	-- Character:TranslateBy(
 	-- 	self._velocity +
 	-- 	RelativeMoveVector *
-	-- 	(Settings.WalkSpeed * deltaTime)
+	-- 	(WalkSpeed * deltaTime)
 	-- );
 
 	if (self._DEBUG_MODE) then
-		self._Debug.GroundRaycast:UpdateLength(3 - self._velocity.Y);
+		DEBUG.GroundRaycast:UpdateLength(HipHeight - self._velocity.Y);
 
-		self._Debug.Direction:UpdatePosition(
+		DEBUG.Direction:UpdatePosition(
 			Root.Position + Vector3.yAxis * 2
 		);
 
 		if (self._moveVector ~= Vector2.zero) then
-			self._Debug.Direction:UpdateVector('MoveDirection',
+			DEBUG.Direction:UpdateVector('MoveDirection',
 				RelativeMoveVector
 			);
-			self._Debug.Direction:UpdateVector('CharacterDirection',
+			DEBUG.Direction:UpdateVector('CharacterDirection',
 				self._PreviousCFrameRot.LookVector
 			);
 		end
 	end
 
-	self._Remotes.Position:Fire(Root.Position);
+	self._Remotes.Position:Fire(Root.CFrame);
 end
 
 return Controller;
