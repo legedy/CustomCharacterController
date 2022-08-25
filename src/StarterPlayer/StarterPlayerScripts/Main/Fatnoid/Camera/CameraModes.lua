@@ -1,14 +1,16 @@
 --> Forked from FastCameraModule by 4thAxis (thx btw)
-
-local Module = {};
-
-local Configs = require(script.Parent:WaitForChild("Configurations"));
+local Types = require(script.Parent.Parent._TypeDefinition);
 
 local UserInputService = game:GetService("UserInputService");
 local Players = game:GetService("Players");
 
+local Module: {Settings: Types.CameraSettings} = {};
+
+
 --> Constants
 local Epsilon = 1e-5;
+
+--> Camera property
 Module.CameraAngleX = 0;
 Module.CameraAngleY = 0;
 
@@ -50,9 +52,9 @@ end
 
 local function _GetPositionToWorldByOffset(OriginCF, XOffset, YOffset, ZOffset)
 	-- Perserve rotational matrix, only transform position to world instead rather than naively transforming origin cframe to world space
-	XOffset = XOffset or Configs.CamLockOffset.X
-	YOffset = YOffset or Configs.CamLockOffset.Y
-	ZOffset = ZOffset or Configs.CamLockOffset.Z
+	XOffset = XOffset or Module.Settings.CamLockOffset.X
+	YOffset = YOffset or Module.Settings.CamLockOffset.Y
+	ZOffset = ZOffset or Module.Settings.CamLockOffset.Z
 
 	local X, Y, Z, M11, M12, M13, M21, M22, M23, M31, M32, M33 = OriginCF:GetComponents()
 	return Vector3.new (
@@ -62,8 +64,8 @@ local function _GetPositionToWorldByOffset(OriginCF, XOffset, YOffset, ZOffset)
 	)
 end
 
+-- Faster alternative to cframe.lookat for our case since we are more commonly prone to special cases such as: when focus is facing up/down or if focus and eye are colinear vectors.
 local function _GetViewMatrix(Eye, Focus)
-	-- Faster alternative to cframe.lookat for our case since we are more commonly prone to special cases such as: when focus is facing up/down or if focus and eye are colinear vectors
 	local XAxis = Focus-Eye -- Lookvector
 	if (XAxis:Dot(XAxis) <= Epsilon) then 
 		return CFrame.new(Eye.X, Eye.Y, Eye.Z, 1, 0, 0, 0, 1, 0, 0, 0, 1) 
@@ -90,12 +92,12 @@ end
 -------------------------  Functions  ------------------------------
 --------------------------------------------------------------------
 
-function Module:Init(Char, Settings)
+function Module:Init(Char, Settings: Types.Settings)
 	Camera.CameraType = Enum.CameraType.Scriptable;
 
 	self:UpdateCharacter(Char);
 
-	self.Settings = Settings;
+	self.Settings = Settings.CameraSettings;
 end
 
 function Module:UpdateCharacter(NewChar)
@@ -118,8 +120,8 @@ function Module.Regular()
 
 	local Focus = _GetPositionToWorldByOffset(
 		Origin,
-		Configs.CamLockOffset.X,
-		Configs.CamLockOffset.Y,
+		Module.Settings.CamLockOffset.X,
+		Module.Settings.CamLockOffset.Y,
 		-10000
 	);
 
@@ -128,39 +130,45 @@ end
 
 
 function Module.Isometric()
-	CameraDepth = CameraDepth or Configs.IsometricCameraDepth
-	HeightOffset = HeightOffset or Configs.IsometricHeightOffset
-	Camera.FieldOfView = FOV or Configs.IsometricFieldOfView
-	_DisableRobloxCamera();
+	local CameraDepth = Module.Settings.IsometricCameraDepth;
+	local HeightOffset = Module.Settings.IsometricHeightOffset;
+
+	Camera.FieldOfView = Module.Settings.IsometricFieldOfView;
 
 	local Root = Root.Position + Vector3.new(0, HeightOffset, 0);
 	local Eye = Root + Vector3.new(CameraDepth, CameraDepth, CameraDepth);
 	Camera.CFrame = _GetViewMatrix(Eye, Root);
 end
 
-function Module.SideScrolling(_, CameraDepth, HeightOffset, FOV)
-	CameraDepth = CameraDepth or Configs.SideCameraDepth
-	HeightOffset = HeightOffset or Configs.SideHeightOffset
-	Camera.FieldOfView = FOV or Configs.SideFieldOfView
+function Module.SideScroll()
+	local CameraDepth = Module.Settings.SideCameraDepth;
+	local HeightOffset = Module.Settings.SideHeightOffset;
+
+	Camera.FieldOfView = Module.Settings.SideFieldOfView;
 
 	local Focus = Root.Position + Vector3.new(0, HeightOffset, 0);
 	local Eye = Vector3.new(Focus.X, Focus.Y, CameraDepth);
-	Camera.CFrame =  _GetViewMatrix(Eye, Focus);
+
+	Camera.CFrame = _GetViewMatrix(Eye, Focus);
 end
 
 
-function Module.TopDown(_, FaceMouse, MouseSensitivity, Offset, Direction, Distance)
-	FaceMouse = FaceMouse or Configs.TopDownFaceMouse
-	MouseSensitivity = MouseSensitivity or Configs.TopDownMouseSensitivity
-	Distance = Distance or Configs.TopDownDistance
-	Direction = Direction or -Vector3.yAxis
-	Offset = Offset or Configs.TopDownOffset
+function Module.TopDown()
+	local MouseSensitivity = Module.Settings.TopDownMouseSensitivity;
+	local FaceMouse = Module.Settings.TopDownFaceMouse;
+	local Distance = Module.Settings.TopDownDistance;
+	local Direction = -Vector3.yAxis;
+	local Offset = Module.Settings.TopDownOffset;
 
-	local M = UserInputService:GetMouseLocation()
-	local Axis = Vector3.new(-((M.Y-ScreenSizeY*0.5)*PixelCoordinateRatioY),0,((M.Y-ScreenSizeX*0.5)*PixelCoordinateRatioX))
+	local M = UserInputService:GetMouseLocation();
+	local Axis = Vector3.new(
+		-((M.Y-ScreenSizeY*0.5)*PixelCoordinateRatioY),
+		0,
+		((M.Y-ScreenSizeX*0.5)*PixelCoordinateRatioX)
+	);
 	
-	local Eye = (Distance + (Root.Position+Offset)) + Axis * MouseSensitivity 
-	local Focus = Eye + Direction
+	local Eye = (Distance + (Root.Position+Offset)) + Axis * MouseSensitivity;
+	local Focus = (Eye + Direction);
 	Camera.CFrame = _GetViewMatrix(Eye, Focus)
 	
 	if FaceMouse then
@@ -170,9 +178,16 @@ function Module.TopDown(_, FaceMouse, MouseSensitivity, Offset, Direction, Dista
 	end
 end
 
-Module.CharacterToMouse = function(_, Alpha, GoalCF)
-	GoalCF = GoalCF or _GetViewMatrix(Root.Position, Vector3.new(Mouse.Hit.Position.X, Root.Position.Y, Mouse.Hit.Position.Z))
-	Root.CFrame = Root.CFrame:Lerp(GoalCF, Alpha or Configs.FaceCharacterAlpha)
+Module.CharacterToMouse = function()
+	Root.CFrame = Root.CFrame:Lerp(
+		_GetViewMatrix(Root.Position,
+			Vector3.new(
+				Mouse.Hit.Position.X,
+				Root.Position.Y,
+				Mouse.Hit.Position.Z
+			)
+		), Module.Settings.FaceCharacterAlpha
+	);
 end
 
 return Module

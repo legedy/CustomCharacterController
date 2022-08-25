@@ -1,3 +1,5 @@
+local Types = require(script.Parent._TypeDefinition);
+
 local Camera = workspace.CurrentCamera;
 
 local RunService = game:GetService('RunService');
@@ -5,9 +7,52 @@ local UserInputService = game:GetService('UserInputService');
 local ContextActionService = game:GetService('ContextActionService');
 local ReplicatedStorage = game:GetService('ReplicatedStorage');
 
-local VisualDebug = require(ReplicatedStorage.VisualDebug);
+local VisualDebug: Types.VisualDebug = require(ReplicatedStorage.VisualDebug);
 
-local Controller = {};
+local Controller: {
+	--> Methods
+	Init: (
+		Types.self,
+		Character: Model,
+		Remotes: Types.Remotes,
+		Events: Types.Events,
+		Properties: Types.Settings
+	) -> (),
+	BindContextActions: (Types.self) -> (),
+	UnbindContextActions: (Types.self) -> (),
+	UpdateMovement: (Types.self, InputState: Enum.UserInputState) -> (),
+	UpdateJump: (Types.self, Jumping: boolean) -> (),
+	Step: (Types.self, DeltaTime: number) -> (),
+
+	--> Private properties
+	_DEBUG_MODE: boolean;
+
+	_moveVector: Vector2,
+	_velocity: Vector3,
+
+	_Events: Types.Events;
+	_Settings: Types.Settings;
+	_Character: Model;
+	_Remotes: Types.Remotes;
+
+	_RaycastParams: RaycastParams;
+	_Debug: {
+		GroundRaycast: Types.DebugLineObject,
+		Direction: Types.DebugVectorObject
+	};
+
+	_movementValue: {
+		isJumping: boolean,
+	
+		forward: number,
+		backward: number,
+		left: number,
+		right: number
+	},
+
+	_PreviousLookVector: Vector3;
+	_PreviousCFrameRot: CFrame;
+} = {};
 
 local function Slerp(v1, v2, t)
 	local r = math.acos(v1:Dot(v2));
@@ -28,30 +73,6 @@ local function Normalize(vec3: Vector3)
 	end
 	return Vector3.zero;
 end
-
-Controller._movementValue = {
-	isJumping = false,
-
-	forward = 0,
-	backward = 0,
-	left = 0,
-	right = 0
-};
-
-Controller._moveVector = Vector2.zero;
-Controller._velocity = Vector3.zero;
-
-Controller._Events = {};
-Controller._Settings = {};
-Controller._Character = nil;
-Controller._Remotes = nil;
-
-Controller._RaycastParams = nil;
-Controller._DEBUG_MODE = false;
-Controller._Debug = {};
-
-Controller._PreviousLookVector = Vector3.zAxis;
-Controller._PreviousCFrameRot = CFrame.new();
 
 local Keybinds = {
 	[Enum.KeyCode.W] = {
@@ -104,7 +125,7 @@ local Keybinds = {
 	}
 };
 
-function Controller:Init(Character, Remotes, Events, Prop)
+function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types.Events, Settings: Types.Settings)
 	self.Init = nil;
 
 	local RaycastParam = RaycastParams.new();
@@ -112,13 +133,16 @@ function Controller:Init(Character, Remotes, Events, Prop)
 	RaycastParam.FilterDescendantsInstances = {Character};
 	RaycastParam.FilterType = Enum.RaycastFilterType.Blacklist;
 
+	self._moveVector = Vector2.zero;
+	self._velocity = Vector3.zero;
+
 	self._Events = Events;
-	self._Settings = Prop;
+	self._Settings = Settings;
 	self._Character = Character;
 	self._Remotes = Remotes;
 
 	self._RaycastParams = RaycastParam;
-	self._DEBUG_MODE = Prop.DEBUG_MODE or false;
+	self._DEBUG_MODE = Settings.DEBUG_MODE or false;
 	self._Debug = {
 		GroundRaycast = VisualDebug.Line.new{
 			Adornee = Character.RootPart,
@@ -142,6 +166,18 @@ function Controller:Init(Character, Remotes, Events, Prop)
 			}
 		})
 	};
+
+	self._movementValue = {
+		isJumping = false,
+	
+		forward = 0,
+		backward = 0,
+		left = 0,
+		right = 0
+	};
+
+	self._PreviousLookVector = Vector3.zAxis;
+	self._PreviousCFrameRot = CFrame.new();
 
 	Character.RootPart.Anchored = true;
 	Character.RootPart.Position = Vector3.yAxis * 3;
@@ -208,7 +244,7 @@ function Controller:Step(deltaTime)
 		to prevent the character from phasing
 		through the floor when falling at
 		high speeds.
-	]]
+	<]]
 	local RayResult = workspace:Raycast(
 		Root.Position,
 		-Vector3.yAxis * (HipHeight - self._velocity.Y),
@@ -230,6 +266,7 @@ function Controller:Step(deltaTime)
 
 		if (self._movementValue._isJumping) then
 			self._velocity += Vector3.yAxis * JumpSpeed * deltaTime;
+			self._Events.Jumping:Fire();
 		end
 	else
 		self._velocity -= Vector3.yAxis * (Vector3.yAxis * (workspace.Gravity/100*deltaTime));
@@ -243,6 +280,12 @@ function Controller:Step(deltaTime)
 		(Vertical * self._moveVector.Y) +
 		(Horizontal * self._moveVector.X)
 	);
+
+	if (self._velocity.Y < 0) then
+		self._Events.FreeFalling:Fire(true);
+	else
+		self._Events.FreeFalling:Fire(false);
+	end
 
 	if (self._moveVector ~= Vector2.zero) then
 		local CurrentLookVector = Slerp(

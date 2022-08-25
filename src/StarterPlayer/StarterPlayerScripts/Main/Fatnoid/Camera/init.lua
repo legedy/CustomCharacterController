@@ -47,7 +47,7 @@ function Module:Init(Character, Events, Settings)
 
 end
 
-function Module:Enable(CameraType: string)
+function Module:Enable(CameraType: (string) | 'Regular' | 'Isometric' | 'SideScroll' | 'TopDown' | 'CharacterToMouse')
 	if (self._CurrentCameraMode) then
 		error('Camera already enabled.');
 	else

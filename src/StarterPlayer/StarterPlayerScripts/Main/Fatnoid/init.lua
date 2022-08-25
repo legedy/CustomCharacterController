@@ -1,3 +1,5 @@
+local Types = require(script._TypeDefinition);
+
 local Players = game:GetService('Players');
 local ReplicatedStorage = game:GetService('ReplicatedStorage');
 
@@ -7,7 +9,7 @@ local BridgeNet = require(ReplicatedStorage.BridgeNet);
 local Signal = require(ReplicatedStorage.Signal);
 
 local Camera = require(script.Camera);
-local Controller = require(script.Controller);
+local Controller: Types.Controller = require(script.Controller);
 local Animator = require(script.Animator);
 
 local Events = require(script.Events);

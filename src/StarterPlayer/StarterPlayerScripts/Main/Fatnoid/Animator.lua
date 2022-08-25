@@ -37,9 +37,12 @@ function Animator:BindAnimations(Animations, Events: Types.Events)
 		print('Jumped')
 	end);
 
-	Events.FreeFalling:Connect(function()
-		Animations.Fall:Play();
-		print('Falling')
+	Events.FreeFalling:Connect(function(IsFalling)
+		if (IsFalling) then
+			Animations.Fall:Play(0.1, 2);
+		else
+			Animations.Fall:Stop();
+		end
 	end);
 
 	Events.Walking:Connect(function(isWalking)
