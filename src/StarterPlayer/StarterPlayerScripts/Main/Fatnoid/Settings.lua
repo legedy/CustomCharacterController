@@ -4,6 +4,7 @@ local Workspace = game:GetService("Workspace")
 return {
 	DEBUG_MODE = true,
 
+	FreeFallThreshold = -0.05,
 	FloorClampThreshold = 0.01,
 	HipHeight = 3,
 	WalkSpeed = 16,

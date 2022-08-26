@@ -41,7 +41,11 @@ local Controller: {
 		Direction: Types.DebugVectorObject
 	};
 
-	_movementValue: {
+	_EventProperties: {
+		IsFalling: boolean
+	},
+
+	_MovementValues: {
 		isJumping: boolean,
 	
 		forward: number,
@@ -78,7 +82,7 @@ local Keybinds = {
 	[Enum.KeyCode.W] = {
 		Name = 'moveForwardAction',
 		Callback = function(_, inputState, _)
-			Controller._movementValue.forward = (inputState == Enum.UserInputState.Begin) and 1 or 0
+			Controller._MovementValues.forward = (inputState == Enum.UserInputState.Begin) and 1 or 0
 			Controller:UpdateMovement(inputState);
 
 			return Enum.ContextActionResult.Pass
@@ -88,7 +92,7 @@ local Keybinds = {
 	[Enum.KeyCode.S] = {
 		Name = 'moveBackwardAction',
 		Callback = function(_, inputState, _)
-			Controller._movementValue.backward = (inputState == Enum.UserInputState.Begin) and -1 or 0
+			Controller._MovementValues.backward = (inputState == Enum.UserInputState.Begin) and -1 or 0
 			Controller:UpdateMovement(inputState);
 
 			return Enum.ContextActionResult.Pass
@@ -98,7 +102,7 @@ local Keybinds = {
 	[Enum.KeyCode.A] = {
 		Name = 'moveLeftAction',
 		Callback = function(_, inputState, _)
-			Controller._movementValue.left = (inputState == Enum.UserInputState.Begin) and -1 or 0
+			Controller._MovementValues.left = (inputState == Enum.UserInputState.Begin) and -1 or 0
 			Controller:UpdateMovement(inputState);
 
 			return Enum.ContextActionResult.Pass
@@ -108,7 +112,7 @@ local Keybinds = {
 	[Enum.KeyCode.D] = {
 		Name = 'moveRightAction',
 		Callback = function(_, inputState, _)
-			Controller._movementValue.right = (inputState == Enum.UserInputState.Begin) and 1 or 0
+			Controller._MovementValues.right = (inputState == Enum.UserInputState.Begin) and 1 or 0
 			Controller:UpdateMovement(inputState);
 			
 			return Enum.ContextActionResult.Pass
@@ -167,7 +171,11 @@ function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types
 		})
 	};
 
-	self._movementValue = {
+	self._EventProperties = {
+		IsFalling = false
+	}
+
+	self._MovementValues = {
 		isJumping = false,
 	
 		forward = 0,
@@ -203,7 +211,7 @@ function Controller:UnbindContextActions()
 end
 
 function Controller:UpdateMovement(inputState: Enum.UserInputState)
-	local MovementValues = self._movementValue;
+	local MovementValues = self._MovementValues;
 	local PreviousMoving = (self._moveVector ~= Vector2.zero);
 
 	if (inputState == Enum.UserInputState.Cancel) then
@@ -221,11 +229,12 @@ function Controller:UpdateMovement(inputState: Enum.UserInputState)
 end
 
 function Controller:UpdateJump(Jumping)
-	self._movementValue._isJumping = Jumping;
+	self._MovementValues._isJumping = Jumping;
 end
 
 function Controller:Step(deltaTime)
 	local Settings = self._Settings;
+	local EventProperties = self._EventProperties;
 	local CamLookVector = Camera.CFrame.LookVector;
 
 	local Character: Model = self._Character;
@@ -236,8 +245,10 @@ function Controller:Step(deltaTime)
 
 	local WalkSpeed = Settings.WalkSpeed;
 	local JumpSpeed = Settings.JumpSpeed;
-	local FloorClampThreshold = Settings.FloorClampThreshold;
 	local HipHeight = Settings.HipHeight;
+
+	local FloorClampThreshold = Settings.FloorClampThreshold;
+	local FreeFallThreshold = Settings.FreeFallThreshold;
 
 	--[[>
 		Raycast downwards with the velocity,
@@ -247,7 +258,7 @@ function Controller:Step(deltaTime)
 	<]]
 	local RayResult = workspace:Raycast(
 		Root.Position,
-		-Vector3.yAxis * (HipHeight - self._velocity.Y),
+		-Vector3.yAxis * (HipHeight + 1 - self._velocity.Y),
 		self._RaycastParams
 	);
 
@@ -264,7 +275,7 @@ function Controller:Step(deltaTime)
 			Character:TranslateBy(Vector3.yAxis * -Displacement);
 		end
 
-		if (self._movementValue._isJumping) then
+		if (self._MovementValues._isJumping) then
 			self._velocity += Vector3.yAxis * JumpSpeed * deltaTime;
 			self._Events.Jumping:Fire();
 		end
@@ -281,10 +292,12 @@ function Controller:Step(deltaTime)
 		(Horizontal * self._moveVector.X)
 	);
 
-	if (self._velocity.Y < 0) then
+	if (self._velocity.Y < FreeFallThreshold and not EventProperties.IsFalling) then
 		self._Events.FreeFalling:Fire(true);
-	else
+		EventProperties.IsFalling = true;
+	elseif (self._velocity.Y >= FreeFallThreshold and EventProperties.IsFalling) then
 		self._Events.FreeFalling:Fire(false);
+		EventProperties.IsFalling = false;
 	end
 
 	if (self._moveVector ~= Vector2.zero) then

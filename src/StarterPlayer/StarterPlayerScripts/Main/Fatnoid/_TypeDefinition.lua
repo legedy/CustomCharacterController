@@ -116,6 +116,8 @@ export type Settings = {
 	DEBUG_MODE: boolean,
 
 	FloorClampThreshold: number,
+	FreeFallThreshold: number,
+
 	HipHeight: number,
 	WalkSpeed: number,
 	JumpSpeed: number,

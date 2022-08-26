@@ -38,8 +38,9 @@ function Animator:BindAnimations(Animations, Events: Types.Events)
 	end);
 
 	Events.FreeFalling:Connect(function(IsFalling)
+		print('Freefalling', IsFalling)
 		if (IsFalling) then
-			Animations.Fall:Play(0.1, 2);
+			Animations.Fall:Play(.2);
 		else
 			Animations.Fall:Stop();
 		end
