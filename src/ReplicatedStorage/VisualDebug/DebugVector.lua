@@ -7,6 +7,7 @@ local EXCLUDE_YAXIS = Vector3.new(1, 0, 1);
 local DebugLine = {};
 DebugLine.__index = DebugLine;
 
+--> Get coords from angle
 local function getPos(angle, scale)
 	angle = math.rad(angle);
 	return Vector3.new(
@@ -16,6 +17,7 @@ local function getPos(angle, scale)
 	) * scale;
 end
 
+--> Create a circle out of LineHandleAdornments
 local function Circle(adornee: BasePart, color: Color3, alwaysOnTop: boolean, resolution: number, scale: number)
 	local Folder = Instance.new('Folder');
 	Folder.Name = 'Circle';
@@ -39,6 +41,8 @@ end
 
 --[[
 	```lua
+	--> Creates a new class which it visually displays the vectors in XZ plane
+
 	-- Adornee: BasePart?
 	-- Radius: number?
 	-- Vector: Vector3?
@@ -53,8 +57,6 @@ function DebugLine.new(properties, vectors: vectors)
 	local AlwaysOnTop = properties.AlwaysOnTop or false;
 	local Position = properties.Position or Vector3.zero;
 	local CircleColor = properties.CircleColor or Color3.new(1, 0, 0);
-	local VectorColor = properties.VectorColor or Color3.new(0, 1, 0);
-	local Vector = properties.Vector or Vector3.xAxis;
 
 	local AdorneePart = Instance.new('Part');
 	AdorneePart.Anchored = true;
