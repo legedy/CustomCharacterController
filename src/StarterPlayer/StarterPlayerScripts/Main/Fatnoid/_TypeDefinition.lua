@@ -1,3 +1,4 @@
+--> Type definitions for Modules
 export type self = {};
 
 export type Callback = (...any) -> ();

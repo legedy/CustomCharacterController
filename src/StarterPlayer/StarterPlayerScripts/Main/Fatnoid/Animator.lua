@@ -1,8 +1,8 @@
-local PathfindingService = game:GetService("PathfindingService")
 local Types = require(script.Parent._TypeDefinition);
 
 local Animator = {};
 
+--> Initialize the module
 function Animator:Init(Character, Events: Types.Events, Settings)
 	local AnimatorInstance = Character:WaitForChild('Animator');
 
@@ -16,6 +16,7 @@ function Animator:Init(Character, Events: Types.Events, Settings)
 	self:BindAnimations(self._LoadedAnimations, Events);
 end
 
+--> Loads animations to a dictionary and returns it
 function Animator:LoadAnimations(AnimatorInstance, Settings)
 	local LoadedAnimations = {};
 
@@ -30,6 +31,7 @@ function Animator:LoadAnimations(AnimatorInstance, Settings)
 	return LoadedAnimations;
 end
 
+--> Binds animations to events
 function Animator:BindAnimations(Animations, Events: Types.Events)
 
 	Events.Jumping:Connect(function()

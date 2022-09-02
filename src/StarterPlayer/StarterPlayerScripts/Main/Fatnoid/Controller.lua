@@ -58,6 +58,7 @@ local Controller: {
 	_PreviousCFrameRot: CFrame;
 } = {};
 
+--> Spherical linear interpolation
 local function Slerp(v1, v2, t)
 	local r = math.acos(v1:Dot(v2));
 
@@ -71,6 +72,7 @@ local function Slerp(v1, v2, t)
 	return v1;
 end
 
+--> Normalizes a vector. Similar to Vector3.Unit, but handles division by zero error.
 local function Normalize(vec3: Vector3)
 	if (vec3 ~= Vector3.zero) then
 		return vec3.Unit;
@@ -78,6 +80,7 @@ local function Normalize(vec3: Vector3)
 	return Vector3.zero;
 end
 
+--> Assign each KeyCode with Name and Callback method
 local Keybinds = {
 	[Enum.KeyCode.W] = {
 		Name = 'moveForwardAction',
@@ -129,6 +132,7 @@ local Keybinds = {
 	}
 };
 
+--> Initialize the module
 function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types.Events, Settings: Types.Settings)
 	self.Init = nil;
 
@@ -147,7 +151,7 @@ function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types
 
 	self._RaycastParams = RaycastParam;
 	self._DEBUG_MODE = Settings.DEBUG_MODE or false;
-	self._Debug = {
+	self._Debug = { --> Create debug objects to visualize the controller
 		GroundRaycast = VisualDebug.Line.new{
 			Adornee = Character.RootPart,
 			Color = Color3.fromRGB(255, 0, 0),
@@ -187,6 +191,7 @@ function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types
 	self._PreviousLookVector = Vector3.zAxis;
 	self._PreviousCFrameRot = CFrame.new();
 
+	--> Anchor and set position so the character doesn't go crazy due to physics and always spawns at the same position
 	Character.RootPart.Anchored = true;
 	Character.RootPart.Position = Vector3.yAxis * 3;
 
@@ -196,6 +201,7 @@ function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types
 	end);
 end
 
+--> Bind the keybinds to the ContextActionService
 function Controller:BindContextActions()
 	for EnumKeyCode, Properties in Keybinds do
 		ContextActionService:BindActionAtPriority(Properties.Name, Properties.Callback, false,
@@ -204,12 +210,14 @@ function Controller:BindContextActions()
 	end
 end
 
+--> Unbind the keybinds
 function Controller:UnbindContextActions()
 	for _, Properties in Keybinds do
 		ContextActionService:UnbindAction(Properties.Name);
 	end
 end
 
+--> Update the move vector (Keybind inputs to vector2)
 function Controller:UpdateMovement(inputState: Enum.UserInputState)
 	local MovementValues = self._MovementValues;
 	local PreviousMoving = (self._moveVector ~= Vector2.zero);
@@ -228,10 +236,14 @@ function Controller:UpdateMovement(inputState: Enum.UserInputState)
 	end
 end
 
+--> Update the jump state
 function Controller:UpdateJump(Jumping)
 	self._MovementValues._isJumping = Jumping;
 end
 
+--[[
+	Step method which handles the movement of the character every post-render.
+]]
 function Controller:Step(deltaTime)
 	local Settings = self._Settings;
 	local EventProperties = self._EventProperties;
@@ -268,30 +280,39 @@ function Controller:Step(deltaTime)
 		local Displacement = (HipHeight - RayResult.Distance);
 
 		if (math.abs(Displacement) > FloorClampThreshold) then
+			--> If the character is falling at a high speed, clamp to nearest floor
 			Character:TranslateBy(
 				Vector3.yAxis * (Displacement - FloorClampThreshold)
 			);
 		elseif (Displacement < 0) then
+			--> If the character is below the floor, clamp to the floor
 			Character:TranslateBy(Vector3.yAxis * -Displacement);
 		end
 
+		--> If the character is on the ground and is jumping, set the velocity to the jump speed
 		if (self._MovementValues._isJumping) then
 			self._velocity += Vector3.yAxis * JumpSpeed * deltaTime;
 			self._Events.Jumping:Fire();
 		end
 	else
+		--> Apply gravity to the character
 		self._velocity -= Vector3.yAxis * (Vector3.yAxis * (workspace.Gravity/100*deltaTime));
 	end
 
+	--> Get camera Y angle
 	local Angle = math.atan2(CamLookVector.X, CamLookVector.Z);
+	--> Get the LookVector of the camera
 	local Vertical = Vector3.new(math.sin(Angle), 0, math.cos(Angle));
+	--> Get the RightVector of the camera
 	local Horizontal = Vertical:Cross(Vector3.yAxis);
 
+	--> Final movement vector relative to camera
 	local RelativeMoveVector = Normalize(
 		(Vertical * self._moveVector.Y) +
 		(Horizontal * self._moveVector.X)
 	);
 
+	--> Handle jump state
 	if (self._velocity.Y < FreeFallThreshold and not EventProperties.IsFalling) then
 		self._Events.FreeFalling:Fire(true);
 		EventProperties.IsFalling = true;
@@ -300,6 +321,7 @@ function Controller:Step(deltaTime)
 		EventProperties.IsFalling = false;
 	end
 
+	--> Smoothly rotate the character to the direction it's moving
 	if (self._moveVector ~= Vector2.zero) then
 		local CurrentLookVector = Slerp(
 			self._PreviousLookVector,
@@ -316,6 +338,7 @@ function Controller:Step(deltaTime)
 		self._PreviousLookVector = CurrentLookVector;
 	end
 
+	--> Translate the character by the velocity and move vector
 	Character:PivotTo(
 		(CFrame.new(Root.Position) * self._PreviousCFrameRot) +
 		self._velocity +
@@ -329,6 +352,7 @@ function Controller:Step(deltaTime)
 	-- 	(WalkSpeed * deltaTime)
 	-- );
 
+	--> Debug module
 	if (self._DEBUG_MODE) then
 		DEBUG.GroundRaycast:UpdateLength(HipHeight - self._velocity.Y);
 

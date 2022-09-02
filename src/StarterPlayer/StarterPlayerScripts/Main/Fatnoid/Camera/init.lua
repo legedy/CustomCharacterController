@@ -47,12 +47,15 @@ function Module:Init(Character, Events, Settings)
 
 end
 
-function Module:Enable(CameraType: (string) | 'Regular' | 'Isometric' | 'SideScroll' | 'TopDown' | 'CharacterToMouse')
-	if (self._CurrentCameraMode) then
-		error('Camera already enabled.');
-	else
-		self._CurrentCameraMode = CameraType;
-	end
+--[[
+	Toggles a camera mode.
+	Note that this will error if the camera mode has already been selected.
+	To select another mode, call Disable method first.
+]]
+function Module:Enable(CameraType: 'Regular' | 'Isometric' | 'SideScroll' | 'TopDown' | 'CharacterToMouse')
+	--> Handle unexpected input and calls
+	CameraType = CameraModes[CameraType] and CameraType or error('Invalid camera mode: '..tostring(CameraType));
+	self._CurrentCameraMode = self._CurrentCameraMode and error('Camera mode already selected') or CameraType;
 
 	RunService:BindToRenderStep(CameraType..'Camera',
 		Enum.RenderPriority.Camera.Value,
