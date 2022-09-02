@@ -1,12 +1,15 @@
+--> Imports all types
 local Types = require(script.Parent._TypeDefinition);
 
 local Camera = workspace.CurrentCamera;
 
+--> Get services
 local RunService = game:GetService('RunService');
 local UserInputService = game:GetService('UserInputService');
 local ContextActionService = game:GetService('ContextActionService');
 local ReplicatedStorage = game:GetService('ReplicatedStorage');
 
+--> Require visual debug library
 local VisualDebug: Types.VisualDebug = require(ReplicatedStorage.VisualDebug);
 
 local Controller: {
@@ -136,28 +139,36 @@ local Keybinds = {
 function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types.Events, Settings: Types.Settings)
 	self.Init = nil;
 
+	--> Create new raycast parameters
 	local RaycastParam = RaycastParams.new();
 	RaycastParam.IgnoreWater = true;
 	RaycastParam.FilterDescendantsInstances = {Character};
 	RaycastParam.FilterType = Enum.RaycastFilterType.Blacklist;
 
+	--> Move vector is the keybind input in the X and Z axis
 	self._moveVector = Vector2.zero;
+	--> Velocity is the current velocity of the character
 	self._velocity = Vector3.zero;
 
+	--> Set all parameters to the controller
 	self._Events = Events;
 	self._Settings = Settings;
 	self._Character = Character;
 	self._Remotes = Remotes;
 
+	--> Set raycast parameter
 	self._RaycastParams = RaycastParam;
+	--> Set debug mode, if DEBUG_MODE is nil, it will default to false
 	self._DEBUG_MODE = Settings.DEBUG_MODE or false;
 	self._Debug = { --> Create debug objects to visualize the controller
+		--> Creates a LineHandleAdornment to visualize the raycast
 		GroundRaycast = VisualDebug.Line.new{
 			Adornee = Character.RootPart,
 			Color = Color3.fromRGB(255, 0, 0),
 			LookVector = -Vector3.yAxis,
 			Length = 3,
 		},
+		--> Creates circle and vectors to visualize the vectors given
 		Direction = VisualDebug.Vector.new({
 			Position = Vector3.zero + Vector3.yAxis * 2,
 			CircleColor = Color3.fromRGB(0, 0, 255),
@@ -175,10 +186,12 @@ function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types
 		})
 	};
 
+	--> Set event properties
 	self._EventProperties = {
 		IsFalling = false
 	}
 
+	--> Set movement values for the controller
 	self._MovementValues = {
 		isJumping = false,
 	
@@ -188,6 +201,7 @@ function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types
 		right = 0
 	};
 
+	--> Set previous look vector to the current look vector for the Step method to interpolate them
 	self._PreviousLookVector = Vector3.zAxis;
 	self._PreviousCFrameRot = CFrame.new();
 
@@ -196,6 +210,7 @@ function Controller:Init(Character: Model, Remotes: Types.Remotes, Events: Types
 	Character.RootPart.Position = Vector3.yAxis * 3;
 
 	self:BindContextActions();
+	--> Call the Step method so it actually runs duh
 	RunService:BindToRenderStep('characterMovement', 200, function(deltaTime)
 		self:Step(deltaTime);
 	end);
@@ -219,18 +234,21 @@ end
 
 --> Update the move vector (Keybind inputs to vector2)
 function Controller:UpdateMovement(inputState: Enum.UserInputState)
-	local MovementValues = self._MovementValues;
-	local PreviousMoving = (self._moveVector ~= Vector2.zero);
+	local MovementValues = self._MovementValues; --> Current movement values
+	local PreviousMoving = (self._moveVector ~= Vector2.zero); --> Was moving previously
 
+	--> If the state is cancelled, set moveVector to 0
 	if (inputState == Enum.UserInputState.Cancel) then
 		self._moveVector = Vector2.zero;
 	else
+		--> If state wasn't cancelled, convert the 4 keybind values to a vector2
 		self._moveVector = Vector2.new(
 			MovementValues.left + MovementValues.right,
 			MovementValues.forward + MovementValues.backward
 		);
 	end
 
+	--> If the character wasn't moving before or moving now, fire the signal
 	if (PreviousMoving ~= (self._moveVector ~= Vector2.zero)) then
 		self._Events.Walking:Fire(self._moveVector ~= Vector2.zero);
 	end
@@ -277,6 +295,7 @@ function Controller:Step(deltaTime)
 	if (RayResult) then
 		self._velocity = Vector3.zero;
 
+		--> Gets distance from HipHeight to the floor
 		local Displacement = (HipHeight - RayResult.Distance);
 
 		if (math.abs(Displacement) > FloorClampThreshold) then
@@ -354,12 +373,15 @@ function Controller:Step(deltaTime)
 
 	--> Debug module
 	if (self._DEBUG_MODE) then
+		--> Display raycast length
 		DEBUG.GroundRaycast:UpdateLength(HipHeight - self._velocity.Y);
 
+		--> Update the visual debug position
 		DEBUG.Direction:UpdatePosition(
 			Root.Position + Vector3.yAxis * 2
 		);
 
+		--> Update the direction of the debug ray when vector's magnitude isn't 0 to avoid visual bugs with LineHandleAdornment
 		if (self._moveVector ~= Vector2.zero) then
 			DEBUG.Direction:UpdateVector('MoveDirection',
 				RelativeMoveVector
@@ -370,6 +392,7 @@ function Controller:Step(deltaTime)
 		end
 	end
 
+	--> Send character's cframe so server can replicate it
 	self._Remotes.Position:Fire(Root.CFrame);
 end
 
